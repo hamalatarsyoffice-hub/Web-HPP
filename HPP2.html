@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Form Barang</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 10px;
+      margin: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 6px;
+      text-align: center;
+    }
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .summary {
+      margin-top: 10px;
+    }
+    .summary label {
+      display: block;
+      margin-top: 5px;
+    }
+    .add-row-btn {
+      margin-bottom: 10px;
+      padding: 6px 12px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Form Barang</h2>
+<button class="add-row-btn">Tambah Baris</button>
+
+<table id="barang-table">
+  <thead>
+    <tr>
+      <th>No</th>
+      <th>Nama Barang</th>
+      <th>Qty</th>
+      <th>Harga Beli</th>
+      <th>Total Beli</th>
+      <th>Harga Jual</th>
+      <th>Total Jual</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<div class="summary">
+  <label>Total Beli: <span id="total-beli">Rp0</span></label>
+  <label>Total Jual: <span id="total-jual">Rp0</span></label>
+  <label>Margin Kotor: <span id="margin-kotor">Rp0</span></label>
+  <label>Selisih PPN (11%): <span id="selisih-ppn">Rp0</span></label>
+  <label>PPh (1.5% dari DPP): <span id="pph">Rp0</span></label>
+
+  <label>Kargo: <input type="number" id="kargo" value="0" /></label>
+  <label>Lain-lain: <input type="number" id="lainlain" value="0" /></label>
+
+  <label><strong>Margin Bersih: <span id="margin-bersih">Rp0</span></strong></label>
+</div>
+
+<script>
+  let rowCount = 0;
+
+  const formatRupiah = (angka) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(angka);
+  };
+
+  function addRow() {
+    rowCount++;
+    const row = `
+      <tr>
+        <td>${rowCount}</td>
+        <td><input type="text" class="nama-barang" /></td>
+        <td><input type="number" class="qty" min="0" /></td>
+        <td><input type="number" class="harga-beli" min="0" /></td>
+        <td class="total-beli">Rp0</td>
+        <td><input type="number" class="harga-jual" min="0" /></td>
+        <td class="total-jual">Rp0</td>
+      </tr>
+    `;
+    $('#barang-table tbody').append(row);
+  }
+
+  function updateTotals() {
+    let totalBeli = 0;
+    let totalJual = 0;
+
+    $('#barang-table tbody tr').each(function () {
+      const qty = parseFloat($(this).find('.qty').val()) || 0;
+      const hargaBeli = parseFloat($(this).find('.harga-beli').val()) || 0;
+      const hargaJual = parseFloat($(this).find('.harga-jual').val()) || 0;
+
+      const totalHargaBeli = qty * hargaBeli;
+      const totalHargaJual = qty * hargaJual;
+
+      $(this).find('.total-beli').text(formatRupiah(totalHargaBeli));
+      $(this).find('.total-jual').text(formatRupiah(totalHargaJual));
+
+      totalBeli += totalHargaBeli;
+      totalJual += totalHargaJual;
+    });
+
+    const marginKotor = totalJual - totalBeli;
+    const ppnJual = totalJual * 0.11;
+    const ppnBeli = totalBeli * 0.11;
+    const selisihPPN = ppnJual - ppnBeli;
+    const dpp = totalJual * 100 / 111;
+    const pph = dpp * 0.015;
+
+    const kargo = parseFloat($('#kargo').val()) || 0;
+    const lain = parseFloat($('#lainlain').val()) || 0;
+    const marginBersih = marginKotor - (selisihPPN + pph + kargo + lain);
+
+    $('#total-beli').text(formatRupiah(totalBeli));
+    $('#total-jual').text(formatRupiah(totalJual));
+    $('#margin-kotor').text(formatRupiah(marginKotor));
+    $('#selisih-ppn').text(formatRupiah(selisihPPN));
+    $('#pph').text(formatRupiah(pph));
+    $('#margin-bersih').text(formatRupiah(marginBersih));
+  }
+
+  $(document).ready(function () {
+    $('.add-row-btn').click(function () {
+      addRow();
+    });
+
+    $(document).on('input', '.qty, .harga-beli, .harga-jual, #kargo, #lainlain', function () {
+      updateTotals();
+    });
+
+    // Baris pertama otomatis ditambahkan
+    addRow();
+  });
+</script>
+
+</body>
+</html>
